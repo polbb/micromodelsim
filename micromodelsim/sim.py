@@ -5,7 +5,7 @@ from .sh import l0s, ls, l_max, n_coeffs, sh
 from .grad import Gradient
 
 
-_n_sides = 2**3
+_n_sides = 2**2
 _x, _y, _z = hp.pix2vec(_n_sides, np.arange(12 * _n_sides**2))
 _vertices = np.vstack((_x, _y, _z)).T
 _thetas = np.arccos(_vertices[:, 2])
@@ -17,6 +17,7 @@ for l in range(0, l_max + 1, 2):
 sft = np.linalg.inv(isft.T @ isft) @ isft.T
 _rf_btens_lte = Gradient(np.ones(len(_vertices)), _vertices, "linear").btens
 _rf_btens_pte = Gradient(np.ones(len(_vertices)), _vertices, "planar").btens
+_rf_btens_ste = Gradient(np.ones(len(_vertices)), _vertices, "spherical").btens
 
 
 def compartment_model_simulation(gradient, fs, ads, rds, odf_sh):
@@ -27,50 +28,77 @@ def compartment_model_simulation(gradient, fs, ads, rds, odf_sh):
     gradient : micromodelsim.grad.Gradient
         Object containing gradient information.
     fs : array_like
-        Compartment signal fractions.
+        Compartment signal fractions in an array with shape (n of simulations,
+        n of compartments).
     ads : array_like
-        Axial diffusivities.
+        Axial diffusivities in an array with shape (n of simulations, n of
+        compartments).
     rds : array_like
-        Radial diffusivities.
+        Radial diffusivities in an array with shape (n of simulations, n of
+        compartments).
     odf_sh : array_like
-        Spherical harmonic coefficients of the ODF.
+        Spherical harmonic coefficients of the ODF in an array with shape (n of
+        coefficients,).
 
     Returns
     -------
-    signals : numpy.ndarray
+    numpy.ndarray
+        Simulated signals.
     """
-    n_compartments = len(fs)
-    Ds = np.zeros((n_compartments, 3, 3))
-    Ds[:, 2, 2] = ads
-    Ds[:, 1, 1] = rds
-    Ds[:, 0, 0] = rds
-    signals = np.zeros(len(gradient.bvals))
+    n_simulations = fs.shape[0]
+    n_compartments = fs.shape[1]
+    Ds = np.zeros((n_simulations, n_compartments, 3, 3))
+    Ds[:, :, 2, 2] = ads
+    Ds[:, :, 1, 1] = rds
+    Ds[:, :, 0, 0] = rds
+    signals = np.zeros((n_simulations, len(gradient.bvals)))
     for i, idx in enumerate(gradient.shell_idx_list):
         if gradient.bten_shape == "linear":
             response = np.sum(
-                fs[:, np.newaxis]
+                fs[..., np.newaxis]
                 * np.exp(
                     -np.sum(
-                        gradient.bs[i] * _rf_btens_lte[np.newaxis] * Ds[:, np.newaxis],
-                        axis=(2, 3),
+                        gradient.bs[i]
+                        * _rf_btens_lte[np.newaxis, np.newaxis]
+                        * Ds[:, :, np.newaxis],
+                        axis=(-2, -1),
                     )
                 ),
-                axis=0,
+                axis=1,
             )
         elif gradient.bten_shape == "planar":
             response = np.sum(
-                fs[:, np.newaxis]
+                fs[..., np.newaxis]
                 * np.exp(
                     -np.sum(
-                        gradient.bs[i] * _rf_btens_lte[np.newaxis] * Ds[:, np.newaxis],
-                        axis=(2, 3),
+                        gradient.bs[i]
+                        * _rf_btens_pte[np.newaxis, np.newaxis]
+                        * Ds[:, :, np.newaxis],
+                        axis=(-2, -1),
                     )
                 ),
-                axis=0,
+                axis=1,
             )
-        response_sh = sft @ response
-        convolution_sh = np.sqrt(4 * np.pi / (2 * ls + 1)) * odf_sh * response_sh[l0s]
-        signals[idx] = gradient._bvecs_isft_list[i] @ convolution_sh
+        elif gradient.bten_shape == "spherical":
+            response = np.sum(
+                fs[..., np.newaxis]
+                * np.exp(
+                    -np.sum(
+                        gradient.bs[i]
+                        * _rf_btens_ste[np.newaxis, np.newaxis]
+                        * Ds[:, :, np.newaxis],
+                        axis=(-2, -1),
+                    )
+                ),
+                axis=1,
+            )
+        response_sh = (sft[np.newaxis] @ response[:, :, np.newaxis])[..., 0]
+        convolution_sh = (
+            np.sqrt(4 * np.pi / (2 * ls + 1)) * odf_sh[np.newaxis] * response_sh[:, l0s]
+        )
+        signals[:, idx] = (
+            gradient._bvecs_isft_list[i] @ convolution_sh[:, :, np.newaxis]
+        )[..., 0]
     return signals
 
 

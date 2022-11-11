@@ -5,9 +5,9 @@ from scipy.special import sph_harm
 l_max = 8
 n_coeffs = int(0.5 * (l_max + 1) * (l_max + 2))
 
-t = np.arange(2*L-1)
-theta_t = (np.pi*t)/(2*L)
-weights = quad_weights(l_max, theta_t) 
+#t = np.arange(2*L-1)
+#theta_t = (np.pi*t)/(2*L)
+#weights = quad_weights(l_max, theta_t) 
 
 ls = np.zeros(n_coeffs).astype(int)
 l0s = np.zeros(n_coeffs).astype(int)

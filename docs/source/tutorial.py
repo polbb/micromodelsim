@@ -159,41 +159,89 @@ Simulation requires a `Gradient` object, compartment signal fractions and diffus
 """
 
 # %%
-gradient = mmsim.Gradient(bvals, bvecs, bten_shape="spherical")
+"""
+### Compartment modelling simulations
+"""
 
-f = 0.8  # intra-neurite signal fraction
-d = 2  # diffusivity
+# %%
+"""
+#### Simulate a 2-compartment model and generate the signal using linear, planar and spherical tensor encoding.
+"""
+
+# %%
+f = 0.8         # intra-neurite signal fraction
+d = 1           # diffusivity
+
+gradient_lte = mmsim.Gradient(bvals, bvecs, bten_shape="linear")
+gradient_pte = mmsim.Gradient(bvals, bvecs, bten_shape="planar")
+gradient_ste = mmsim.Gradient(bvals, bvecs, bten_shape="spherical")
 
 fs = np.array([f, 1 - f])
 ads = np.array([d, d])
 rds = np.array([0, (1 - f) * d])
 
-signals = mmsim.compartment_model_simulation(gradient, fs, ads, rds, odf_sh)
+signals_lte = mmsim.compartment_model_simulation(gradient_lte, fs, ads, rds, odf_sh)
+signals_pte = mmsim.compartment_model_simulation(gradient_pte, fs, ads, rds, odf_sh)
+signals_ste = mmsim.compartment_model_simulation(gradient_ste, fs, ads, rds, odf_sh)
 
-plt.plot(signals)
+plt.plot(signals_lte)
+plt.plot(signals_pte)
+plt.plot(signals_ste)
+plt.legend(['LTE','PTE','STE'])
 plt.show()
 
-# %% test multi-compartment simulation
+# %%
+"""
+#### Simulate multiple 2-compartment environments and generate the signal.
+"""
+
+# %% 
 gradient = mmsim.Gradient(bvals, bvecs, bten_shape="spherical")
-f = np.array([0.8, 0.5])          # intra-neurite signal fraction
-d = np.array([1, 2])    # diffusivity
+f = np.array([0.8, 0.5])        # intra-neurite signal fraction
+d = np.array([1, 2])            # diffusivity
 
 fs = np.array([[f[i], 1-f[i]] for i in range(len(f))])
 ads = np.array([[d[i], d[i]] for i in range(len(f))])
 rds = np.array([[0, (1 - f[i]) * d[i]] for i in range(len(f))])
-#signals = mmsim.compartment_model_simulation(gradient, fs, ads, rds, odf_sh)
-signals = mmsim.multi_compartment_model_simulation(gradient, fs, ads, rds, odf_sh)
+signals = mmsim.compartment_model_simulation(gradient, fs, ads, rds, odf_sh)
 
 for i in range(len(f)):
     plt.plot(signals[i,:])
+plt.legend(['environment 1','environment 2'])
 plt.show()
 
+# %% 
+"""
+### Diffusion tensor distribution (DTD) simulations 
 
+Simulate a 2-compartment model using the DTD model.
+"""
+
+# %%
+bvecs = np.array([[1, 0, 0], [0, 1, 0], [0, 0, 1], [1, 1, 1]])
+bvals = np.ones(len(bvecs))
+gradient = mmsim.Gradient(bvals, bvecs, bten_shape="linear")
+f = 0.8     # intra-neurite signal fraction
+d = 2       # diffusivity
+Ds = np.zeros((3, 3, 3))
+Ds[0, :, :] = d/3*np.eye(3)
+Ds[1, 0, 0] = d
+Ds[2, 1, 1] = d
+signals = mmsim.dtd_simulation(gradient, Ds, P = np.array([0, 0, 1]))
+plt.plot(signals)
+plt.show()
+  
 # %%
 """
 ## Validation
 
 To check that the results are accurate, let's estimate what $d$ and $f$ were using SMT.
+"""
+
+# %%
+"""
+#### Validate the 2-compartment model generated using linear tensor encoding.
+
 """
 
 # %%

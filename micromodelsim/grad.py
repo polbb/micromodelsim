@@ -1,4 +1,9 @@
-import numpy as np
+try: 
+    import JAX.numpy as np
+except ImportError:
+    print("Unable to import JAX, numpy is imported instead")
+    import numpy as np
+
 
 from .sh import sh, l_max, n_coeffs
 
@@ -66,6 +71,14 @@ class Gradient(object):
     """
 
     def __init__(self, bvals, bvecs, bten_shape="linear"):
+
+        if bvals.ndim != 1:
+            raise ValueError("Incorrect value for `bvals`")
+        if bvecs.ndim != 2 or bvecs.shape[1] != 3:
+            raise ValueError(f"Incorrect value for `bvecs`")
+        if len(bvals) != len(bvecs):
+            raise ValueError("`bvals` and `bvecs` should be the same length.")
+
         self.bvals = bvals
         self.bvecs = bvecs
         self.bten_shape = bten_shape

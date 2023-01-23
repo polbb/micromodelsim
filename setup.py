@@ -12,8 +12,8 @@ setup(
     author="Leevi Kerkelä",
     author_email="leevi.kerkela@protonmail.com",
     license="MIT",
-    packages=["micromodelsim", "micromodelsim.tests"],
-    install_requires=["healpy", "numpy", "scipy"],
+    packages=["micromodelsim"],
+    install_requires=["numpy", "scipy"],
     include_package_data=True,
     package_data={"": ["license.txt"]},
 )

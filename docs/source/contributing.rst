@@ -1,44 +1,34 @@
-************
+############
 Contributing
-************
+############
+
+Contributions to the package from other developers and scientists are welcome!
+Note that a basic understanding of Python software development is required.
 
 Development workflow
-####################
+====================
 
-1. Fork the `repository on GitHub <https://github.com/kerkelae/micromodelsim/>`_.
+1. Fork the `repository on GitHub
+   <https://github.com/kerkelae/micromodelsim/>`_.
 
-2. Clone your fork:
-    
-.. code-block:: bash
+2. Clone your fork.
 
-    git clone git@github.com:{YOUR-USERNAME}/micromodelsim.git
+.. tip::
 
-.. note::
+   When making changes to the code, it is helpful to install the package in
+   editable mode by executing the following in the root directory of the
+   repository:
 
-   When making changes, it is helpful to install ``micromodelsim`` in editable
-   mode by executing the following in the root directory of the cloned
-   repo:
+   .. code-block::
 
-   .. code-block:: bash
-        
         pip install -e .
 
-3. Configure Git to sync your fork with the main repo:
+3. Create a branch with a descriptive name.
 
-.. code-block:: bash
-       
-    git remote add upstream https://github.com/kerkelae/micromodelsim.git
+4. Write code, commit changes with clear messages, and push the changes to
+   your fork.
 
-4. Create a branch with a descriptive name:
-
-.. code-block:: bash
-        
-    git checkout -b {BRANCH-NAME}
-
-5. Write code, commit changes with clear messages, and push the changes to
-your fork.
-
-6. Open a pull request `on GitHub <https://github.com/kerkelae/micromodelsim/>`_.
+5. Open a pull request on GitHub to have your code merged into the main branch.
 
 GitHub docs provide more information on `forking a repository
 <https://docs.github.com/en/get-started/quickstart/fork-a-repo>`_ and `creating
@@ -48,33 +38,40 @@ proposing-changes-to-your-work-with-pull-requests/creating-a-pull-request-from-
 a-fork>`_.
 
 Code style
-##########
+==========
 
 All code should be formatted with `Black <https://github.com/psf/black>`_ using
-the default settings and documented following the `NumPy docstring conventions
+the default settings and documented following the `NumPy style guide
 <https://numpydoc.readthedocs.io/en/latest/format.html>`_.
 
 Tests
-#####
+=====
 
-Please run the tests to make sure your changes have not broken anything. This
-can be done with ``pytest`` by executing the following in the root directory
-of the repository:   
+It is important to run the automated tests to ensure that your changes have not
+broken anything. The tests require `DIPY <https://dipy.org>`_ and
+`pytest <https://pytest.org/>`_. The tests can be run by executing the
+following in the root directory of the repository:
 
 .. code-block::
-    
+
     pytest
 
 Documentation
-#############
+=============
 
-Documentation can be built locally by executing the following in
-``micromodelsim/docs``:
+Building the documentation locally requires
+`make <https://www.gnu.org/software/make/>`_, `pandoc <https://pandoc.org/>`_,
+`sphinx <https://www.sphinx-doc.org/>`_,
+`nbsphinx <https://nbsphinx.readthedocs.io/>`_, and
+`furo <https://pradyunsg.me/furo/>`_. Documentation can be built locally by
+executing the following in the ``docs`` directory:
 
 .. code-block::
 
     make clean
     make html
 
-Note that generating the documentation locally requires the packages listed
-in ``micromodelsim/docs/source/requirements.txt``.
+This will generate the documentation in ``docs/_build/html``.
+
+Once the changes are merged into the main branch, the documentation is
+automatically updated online.

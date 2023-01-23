@@ -20,5 +20,6 @@ The package can be installed with `pip <https://github.com/pypa/pip>`_:
 Getting started
 ===============
 
-The documentation contains `a tutorial <TBD>`_ that teaches how to use the
-package.
+The documentation contains
+`a tutorial <https://micromodelsim.readthedocs.io/en/latest/tutorial.html>`_
+that shows how to use the package.

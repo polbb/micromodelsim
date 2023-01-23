@@ -4,6 +4,21 @@
 
 ``micromodelsim`` (for "microstructural model simulator") is a Python package
 for generating diffusion-weighted nuclear magnetic resonance (NMR) signals from
-microstructural models. It is designed to help in the development of new
-microstructural models and to enable efficient training of machine learning
+microstructural models. It is designed to help in the development and validation
+of models and to enable efficient training of machine learning
 models for parameter estimation.
+
+Installation
+============
+
+The package can be installed with `pip <https://github.com/pypa/pip>`_:
+
+..  code-block::
+
+    pip install git+https://github.com/kerkelae/micromodelsim.git
+
+Getting started
+===============
+
+The documentation contains `a tutorial <TBD>`_ that teaches how to use the
+package.

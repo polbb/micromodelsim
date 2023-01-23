@@ -21,5 +21,6 @@ Getting started
 ===============
 
 The documentation contains
-`a tutorial <https://micromodelsim.readthedocs.io/en/latest/tutorial.html>`_
-that shows how to use the package.
+`a tutorial <https://micromodelsim.rtfd.io/en/latest/tutorial.html>`_ that
+shows how to use the package. Details can be found in the `reference
+<https://micromodelsim.rtfd.io/en/latest/reference.html>`_.

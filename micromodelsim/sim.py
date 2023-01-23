@@ -1,44 +1,63 @@
-import healpy as hp
 import numpy as np
 
-from .sh import l0s, ls, l_max, n_coeffs, sh
+from .sh import sh
 from .grad import Gradient
+from .vertices import vertices_768 as _vertices
 
 
-_n_sides = 2**2
-_x, _y, _z = hp.pix2vec(_n_sides, np.arange(12 * _n_sides**2))
-_vertices = np.vstack((_x, _y, _z)).T
-_thetas = np.arccos(_vertices[:, 2])
-_phis = np.arctan2(_vertices[:, 1], _vertices[:, 0]) + np.pi
-isft = np.zeros((len(_vertices), n_coeffs))
-for l in range(0, l_max + 1, 2):
-    for m in range(-l, l + 1):
-        isft[:, int(0.5 * l * (l + 1) + m)] = sh(l, m, _thetas, _phis)
-sft = np.linalg.inv(isft.T @ isft) @ isft.T
-_rf_btens_lte = Gradient(np.ones(len(_vertices)), _vertices, "linear").btens
-_rf_btens_pte = Gradient(np.ones(len(_vertices)), _vertices, "planar").btens
-_rf_btens_ste = Gradient(np.ones(len(_vertices)), _vertices, "spherical").btens
+def add_noise(signals, snr):
+    r"""Add Rician noise to signals.
+
+    Parameters
+    ----------
+    signals : numpy.ndarray
+        Signals to which noise is added.
+    snr : int
+        Signal-to-noise ratio.
+
+    Returns
+    -------
+    noisy_signals : numpy.ndarray
+        `signals` with added noise.
+
+    Notes
+    -----
+    Noise is added according to the following equation:
+
+    .. math:: S_\text{noisy} = \sqrt{(S + X)^2 + Y^2},
+
+    where :math:`X` and :math:`Y` are sampled from a normal distribution with
+    zero mean and standard deviation of 1/`snr`.
+    """
+    return abs(
+        signals
+        + np.random.normal(0, 1 / snr, signals.shape)
+        + 1j * np.random.normal(0, 1 / snr, signals.shape)
+    )
 
 
-def compartment_model_simulation(gradient, fs, ads, rds, odf_sh):
+def compartment_model_simulation(gradient, fs, ads, rds, odf_sh, l_max=16):
     """Generate simulated signals.
 
     Parameters
     ----------
     gradient : micromodelsim.grad.Gradient
         Object containing gradient information.
-    fs : array_like
+    fs : numpy.ndarray
         Compartment signal fractions in an array with shape (n of simulations,
         n of compartments).
-    ads : array_like
+    ads : numpy.ndarray
         Axial diffusivities in an array with shape (n of simulations, n of
         compartments).
-    rds : array_like
+    rds : numpy.ndarray
         Radial diffusivities in an array with shape (n of simulations, n of
         compartments).
-    odf_sh : array_like
+    odf_sh : numpy.ndarray
         Spherical harmonic coefficients of the ODF in an array with shape (n of
-        coefficients,).
+        coefficients,). The ODF should be normalized to 1.
+    l_max : int, optional
+        Highest degree of the spherical harmonics included in the response
+        function expansion.
 
     Returns
     -------
@@ -47,13 +66,13 @@ def compartment_model_simulation(gradient, fs, ads, rds, odf_sh):
     """
     if fs.ndim == 1:
         fs = fs[np.newaxis]
-        
+
     if ads.ndim == 1:
         ads = ads[np.newaxis]
-        
+
     if rds.ndim == 1:
         rds = rds[np.newaxis]
-        
+
     n_simulations = fs.shape[0]
     n_compartments = fs.shape[1]
 
@@ -109,72 +128,64 @@ def compartment_model_simulation(gradient, fs, ads, rds, odf_sh):
         signals[:, idx] = (
             gradient._bvecs_isft_list[i] @ convolution_sh[:, :, np.newaxis]
         )[..., 0]
-        
+
     signals = np.squeeze(signals)
     return signals
 
 
-
-def dtd_simulation(gradient, dtd, P = None):
-    """Generate simulated signals.
+def dtd_simulation(gradient, dtd, p=None):
+    r"""Simulate signals from a diffusion tensor distribution.
 
     Parameters
     ----------
     gradient : micromodelsim.grad.Gradient
         Object containing gradient information.
-    dtd : array_like
-        Diffusion tensor distribution, [# compartments, 3, 3].
-    P : array_like
-        Weight of each tensor in distribution. If 'None' then tensors are evenly weighted
+    dtd : numpy.ndarray
+        Diffusion tensor distribution in an array with shape (number of
+        tensors, 3, 3).
+    f : numpy.ndarray, optional
+        1D array whose length equal to the number of tensors in `dtd`
+        containing the signal fractions of each tensor. The sum of the signal
+        fractions must be equal to 1. If not given, each tensor has the same
+        signal fraction.
 
     Returns
     -------
     signals : numpy.ndarray
-    
-    Notes
-    -----
-    Signals are generated using:
-    
-    .. math:: S = S_0 \int P(\mathbf{D}_\mu) \exp(-\mathbf{b:D})\,d\mathbf{D}_\mu
-    
-    """
-    if P is None:
-        P = np.ones(dtd.shape[0]) / dtd.shape[0]
-    
-    signals = np.sum(P[:, np.newaxis]*
-                     np.exp(
-                         -np.sum(gradient.btens[np.newaxis]*dtd[:,np.newaxis], axis=(-2, -1))
-                         ), 
-                     axis=0)
-    
-    return signals
-
-    
-def add_noise(signals, SNR):
-    r"""Add Rician noise to signals.
-
-    Parameters
-    ----------
-    signals : array_like
-        Signals to which noise is added.
-    SNR : int
-        Signal-to-noise ratio.
-
-    Returns
-    -------
-    noisy_signals : np.ndarray
-        `signals` with noise added to it.
+        Simulated signals.
 
     Notes
     -----
-    Noisy signals are
+    Signals are generated according to the following equation:
 
-    .. math:: S_\text{noisy} = \sqrt{(S + X)^2 + Y^2},
+    .. math:: S = \sum_{i=1}^N f_i \exp \left( -\mathbf{b}:\mathbf{D}_i
+              \right),
 
-    where :math:`X` and :math:`Y` are sampled from a normal distribution with
-    zero mean and standard deviation of :math:`1/\text{SNR}`.
+    where :math:`N` is the number of diffusion tensors, :math:`f_i` is a signal
+    fraction, :math:`\mathbf{b}` is the b-tensor, :math:`\mathbf{D}_i` is a
+    diffusion tensor, and :math:`:` denotes the generalized scalar product:
+    :math:`\mathbf{b}:\mathbf{D}=\sum_{i=1}^3 \sum_{j=1}^3b_{ij}D_{ij}`.
     """
-    return abs(
-        signals * np.random.normal(0, 1 / SNR, signals.shape)
-        + 1j * np.random.normal(0, 1 / SNR, signals.shape)
+    if not isinstance(gradient, Gradient):
+        raise TypeError("Incorrect type for `gradient`")
+    if not isinstance(dtd, np.ndarray):
+        raise TypeError("Incorrect type for `dtd`")
+    if dtd.ndim != 3 or dtd.shape[1:3] != (3, 3):
+        raise ValueError("Incorrect shape for `dtd`")
+    if p is None:
+        p = np.ones(dtd.shape[0]) / dtd.shape[0]
+    else:
+        if not isinstance(p, np.ndarray):
+            raise TypeError("Incorrect type for `p`")
+        if p.ndim != 1 or p.shape[0] != dtd.shape[0]:
+            raise ValueError("Incorrect shape for `dtd`")
+        if p.sum() != 1:
+            raise ValueError("`f` is not normalized")
+    signals = np.sum(
+        p[:, np.newaxis]
+        * np.exp(
+            -np.sum(gradient.btens[np.newaxis] * dtd[:, np.newaxis], axis=(-2, -1))
+        ),
+        axis=0,
     )
+    return signals

@@ -13,4 +13,3 @@ python:
     - method: pip
       path: .
     - requirements: docs/source/requirements.txt
-    - requirements: dev_requirements.txt

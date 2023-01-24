@@ -1,6 +1,6 @@
 import numpy as np
 
-from .sh import sh
+from .sh import l_max, n_coeffs, sh
 
 
 def _vec2vec_rotmat(v, k):
@@ -100,3 +100,13 @@ class Gradient(object):
                     self.btens[i] = bval * np.eye(3) / 3
         self.bs = np.unique(bvals)
         self.shell_idx_list = [np.where(self.bvals == b)[0] for b in self.bs]
+
+        self._bvecs_isft_list = []
+        for bvecs in [bvecs[self.bvals == b] for b in self.bs]:
+            thetas = np.arccos(bvecs[:, 2])
+            phis = np.arctan2(bvecs[:, 1], bvecs[:, 0]) + np.pi
+            bvecs_isft = np.zeros((len(bvecs), n_coeffs), dtype=float)
+            for l in range(0, l_max + 1, 2):
+                for m in range(-l, l + 1):
+                    bvecs_isft[:, int(0.5 * l * (l + 1) + m)] = sh(l, m, thetas, phis)
+            self._bvecs_isft_list.append(bvecs_isft)

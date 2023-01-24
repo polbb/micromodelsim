@@ -1,8 +1,13 @@
 import numpy as np
 
-from .sh import sh
+from .sh import l0s, ls, sft, sh
 from .grad import Gradient
-from .vertices import vertices_768 as _vertices
+from .vertices import vertices_3072
+
+
+rf_btens_lte = Gradient(np.ones(3072), vertices_3072).btens
+rf_btens_pte = Gradient(np.ones(3072), vertices_3072, "planar").btens
+rf_btens_ste = Gradient(np.ones(3072), vertices_3072, "spherical").btens
 
 
 def add_noise(signals, snr):
@@ -36,7 +41,7 @@ def add_noise(signals, snr):
     )
 
 
-def compartment_model_simulation(gradient, fs, ads, rds, odf_sh, l_max=16):
+def compartment_model_simulation(gradient, fs, ads, rds, odfs_sh):
     """Generate simulated signals.
 
     Parameters
@@ -52,29 +57,42 @@ def compartment_model_simulation(gradient, fs, ads, rds, odf_sh, l_max=16):
     rds : numpy.ndarray
         Radial diffusivities in an array with shape (n of simulations, n of
         compartments).
-    odf_sh : numpy.ndarray
+    odfs_sh : numpy.ndarray
         Spherical harmonic coefficients of the ODF in an array with shape (n of
-        coefficients,). The ODF should be normalized to 1.
-    l_max : int, optional
-        Highest degree of the spherical harmonics included in the response
-        function expansion.
+        simulations, n of coefficients).
 
     Returns
     -------
     numpy.ndarray
         Simulated signals.
     """
-    if fs.ndim == 1:
-        fs = fs[np.newaxis]
-
-    if ads.ndim == 1:
-        ads = ads[np.newaxis]
-
-    if rds.ndim == 1:
-        rds = rds[np.newaxis]
+    if not isinstance(gradient, Gradient):
+        raise TypeError("Incorrect type for `gradient`")
+    if not isinstance(fs, np.ndarray):
+        raise TypeError("Incorrect type for `fs`")
+    if fs.ndim > 2:
+        raise ValueError("Incorrect shape for `fs`")
+    if not isinstance(ads, np.ndarray):
+        raise TypeError("Incorrect type for `ads`")
+    if ads.ndim > 2:
+        raise ValueError("Incorrect shape for `ads`")
+    if not isinstance(rds, np.ndarray):
+        raise TypeError("Incorrect type for `ads`")
+    if rds.ndim > 2:
+        raise ValueError("Incorrect shape for `ads`")
+    if not (fs.shape == ads.shape == rds.shape):
+        raise ValueError("`fs`, `ads`, and `rds` must have the same shape")
+    if not isinstance(odfs_sh, np.ndarray):
+        raise TypeError("Incorrect type for `odfs_sh`")
+    n_coeffs = odfs_sh.shape[1]
+    l_max = 0.5 * (np.sqrt(8 * n_coeffs + 1) - 3)
+    if len(odfs_sh) != len(fs) or (int(l_max) - l_max) > 1e-10:
+        raise ValueError("Incorrect shape for `odfs_sh`")
 
     n_simulations = fs.shape[0]
     n_compartments = fs.shape[1]
+
+    odfs_sh = odfs_sh / odfs_sh[:, 0][:, np.newaxis] / np.sqrt(4 * np.pi)
 
     Ds = np.zeros((n_simulations, n_compartments, 3, 3))
     Ds[:, :, 2, 2] = ads
@@ -88,7 +106,7 @@ def compartment_model_simulation(gradient, fs, ads, rds, odf_sh, l_max=16):
                 * np.exp(
                     -np.sum(
                         gradient.bs[i]
-                        * _rf_btens_lte[np.newaxis, np.newaxis]
+                        * rf_btens_lte[np.newaxis, np.newaxis]
                         * Ds[:, :, np.newaxis],
                         axis=(-2, -1),
                     )
@@ -101,7 +119,7 @@ def compartment_model_simulation(gradient, fs, ads, rds, odf_sh, l_max=16):
                 * np.exp(
                     -np.sum(
                         gradient.bs[i]
-                        * _rf_btens_pte[np.newaxis, np.newaxis]
+                        * rf_btens_pte[np.newaxis, np.newaxis]
                         * Ds[:, :, np.newaxis],
                         axis=(-2, -1),
                     )
@@ -114,22 +132,23 @@ def compartment_model_simulation(gradient, fs, ads, rds, odf_sh, l_max=16):
                 * np.exp(
                     -np.sum(
                         gradient.bs[i]
-                        * _rf_btens_ste[np.newaxis, np.newaxis]
+                        * np.eye(3)[np.newaxis, np.newaxis]
                         * Ds[:, :, np.newaxis],
                         axis=(-2, -1),
                     )
                 ),
                 axis=1,
             )
-        response_sh = (sft[np.newaxis] @ response[:, :, np.newaxis])[..., 0]
+        response_sh = (sft[np.newaxis, 0:n_coeffs] @ response[:, :, np.newaxis])[..., 0]
         convolution_sh = (
-            np.sqrt(4 * np.pi / (2 * ls + 1)) * odf_sh[np.newaxis] * response_sh[:, l0s]
+            np.sqrt(4 * np.pi / (2 * ls[0:n_coeffs] + 1))
+            * odfs_sh[np.newaxis]
+            * response_sh[:, l0s[0:n_coeffs]]
         )
         signals[:, idx] = (
-            gradient._bvecs_isft_list[i] @ convolution_sh[:, :, np.newaxis]
+            gradient._bvecs_isft_list[i][:, 0:n_coeffs]
+            @ convolution_sh[..., np.newaxis]
         )[..., 0]
-
-    signals = np.squeeze(signals)
     return signals
 
 

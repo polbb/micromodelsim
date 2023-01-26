@@ -20,12 +20,37 @@ def test_add_noise():
 
 
 def test_compartment_model_simulation():
-    # odf_sh = np.zeros(mmsim.n_coeffs)
-    # odf_sh[0] = 0.2820947917738782  # unifrom ODF
-    # Confirm correct signal decay using isotropic diffusion
-    # Confirm directionality using a known ODF of aligned fibres
-    # Confirm correct variance using QTI to invert the signal
-    assert True
+
+    # ADD TESTS FOR INPUT VALIDATION
+
+    # Test with DTI and a single isotropic compartment
+    bvals = np.concatenate((np.zeros(1), 0.5 * np.ones(48)))
+    bvecs = np.vstack((np.zeros(3), mmsim.vertices_48))
+    gradient = mmsim.Gradient(bvals, bvecs)
+    gtab = gradient_table(bvals, bvecs)
+    dtimodel = dti.TensorModel(gtab)
+    n_simulations = int(1e3)
+    coeffs = np.ones(
+        (n_simulations, int(0.5 * (mmsim._l_max + 1) * (mmsim._l_max + 2)))
+    )
+    np.random.seed(123)
+    coeffs[:, 1::] = (
+        1
+        / mmsim._l0s[1::][np.newaxis]
+        * (0.5 - np.random.random((n_simulations, coeffs.shape[1] - 1)))
+    )
+    fs = np.ones((n_simulations, 1))
+    ds = np.random.random((n_simulations, 1)) * 5
+    for l_max in np.arange(0, mmsim._l_max + 1, 2):
+        n_coeffs = int(0.5 * (mmsim._l_max + 1) * (mmsim._l_max + 2))
+        odfs_sh = coeffs[:, 0:n_coeffs]
+        signals = mmsim.compartment_model_simulation(gradient, fs, ds, ds, odfs_sh)
+        dtifit = dtimodel.fit(signals)
+        assert np.all(abs(dtifit.md - ds[:, 0]) < 1e-10)
+
+    # TEST DIRECTIONALITY
+
+    # TEST VARIANCE WITH QTI
 
 
 def test_dtd_simulation():
@@ -103,7 +128,7 @@ def test_dtd_simulation():
     lte_gradient = mmsim.Gradient(bvals, bvecs)
     pte_gradient = mmsim.Gradient(bvals, bvecs, bten_shape="planar")
     for i in range(100):
-        dtd = np.random.random((1000, 3, 3))
+        dtd = np.zeros((1000, 3, 3))
         for j in range(dtd.shape[0]):
             k = np.random.normal(size=3)
             R = mmsim._vec2vec_rotmat(np.array([1, 0, 0]), k)

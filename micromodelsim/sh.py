@@ -3,15 +3,15 @@ from scipy.special import sph_harm
 from .vertices import vertices_3072
 
 
-l_max = 32
-n_coeffs = int(0.5 * (l_max + 1) * (l_max + 2))
+_l_max = 32  # maximum supported l_max
+n_coeffs = int(0.5 * (_l_max + 1) * (_l_max + 2))
 
-ls = np.zeros(n_coeffs, dtype=int)
-l0s = np.zeros(n_coeffs, dtype=int)
-for l in range(0, l_max + 1, 2):
+_ls = np.zeros(n_coeffs, dtype=int)
+_l0s = np.zeros(n_coeffs, dtype=int)
+for l in range(0, _l_max + 1, 2):
     for m in range(-l, l + 1):
-        ls[int(0.5 * l * (l + 1) + m)] = l
-        l0s[int(0.5 * l * (l + 1) + m)] = int(0.5 * l * (l + 1))
+        _ls[int(0.5 * l * (l + 1) + m)] = l
+        _l0s[int(0.5 * l * (l + 1) + m)] = int(0.5 * l * (l + 1))
 
 
 def sh(l, m, thetas, phis):
@@ -62,9 +62,9 @@ def sh(l, m, thetas, phis):
 
 
 thetas = np.arccos(vertices_3072[:, 2])
-phis = np.arctan2(vertices_3072[:, 1], vertices_3072[:, 0]) + np.pi
+phis = np.arctan2(vertices_3072[:, 1], vertices_3072[:, 0]) + np.pi / 2
 isft = np.zeros((len(vertices_3072), n_coeffs))
-for l in range(0, l_max + 1, 2):
+for l in range(0, _l_max + 1, 2):
     for m in range(-l, l + 1):
         isft[:, int(0.5 * l * (l + 1) + m)] = sh(l, m, thetas, phis)
 sft = np.linalg.pinv(isft.T @ isft) @ isft.T

@@ -1,6 +1,6 @@
 import numpy as np
 
-from .sh import l0s, ls, sft, sh
+from .sh import _l0s, _ls, sft, sh
 from .grad import Gradient
 from .vertices import vertices_3072
 
@@ -85,8 +85,8 @@ def compartment_model_simulation(gradient, fs, ads, rds, odfs_sh):
     if not isinstance(odfs_sh, np.ndarray):
         raise TypeError("Incorrect type for `odfs_sh`")
     n_coeffs = odfs_sh.shape[1]
-    l_max = 0.5 * (np.sqrt(8 * n_coeffs + 1) - 3)
-    if len(odfs_sh) != len(fs) or (int(l_max) - l_max) > 1e-10:
+    _l_max = 0.5 * (np.sqrt(8 * n_coeffs + 1) - 3)
+    if len(odfs_sh) != len(fs) or (int(_l_max) - _l_max) > 1e-10:
         raise ValueError("Incorrect shape for `odfs_sh`")
 
     n_simulations = fs.shape[0]
@@ -141,9 +141,9 @@ def compartment_model_simulation(gradient, fs, ads, rds, odfs_sh):
             )
         response_sh = (sft[np.newaxis, 0:n_coeffs] @ response[:, :, np.newaxis])[..., 0]
         convolution_sh = (
-            np.sqrt(4 * np.pi / (2 * ls[0:n_coeffs] + 1))
+            np.sqrt(4 * np.pi / (2 * _ls[0:n_coeffs] + 1))
             * odfs_sh[np.newaxis]
-            * response_sh[:, l0s[0:n_coeffs]]
+            * response_sh[:, _l0s[0:n_coeffs]]
         )
         signals[:, idx] = (
             gradient._bvecs_isft_list[i][:, 0:n_coeffs]

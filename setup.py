@@ -13,7 +13,7 @@ setup(
     author_email="leevi.kerkela@protonmail.com",
     license="MIT",
     packages=["micromodelsim"],
-    install_requires=["numpy", "scipy"],
+    install_requires=["matplotlib","numpy", "scipy"],
     include_package_data=True,
     package_data={"": ["license.txt", "healpix/*"]},
 )

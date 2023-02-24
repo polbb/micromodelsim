@@ -21,3 +21,7 @@ Reference
 ``sh``
 ======
 .. autofunction:: micromodelsim.sh
+
+``show_tensor``
+===============
+.. autofunction:: micromodelsim.show_tensor

@@ -1,8 +1,0 @@
-sphinx
-furo
-matplotlib
-nbsphinx
-pandoc
-healpy
-numpy
-scipy

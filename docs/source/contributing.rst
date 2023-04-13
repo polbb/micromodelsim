@@ -28,7 +28,8 @@ Development workflow
 4. Write code, commit changes with clear messages, and push the changes to
    your fork.
 
-5. Open a pull request on GitHub to have your code merged into the main branch.
+5. Open a pull request on GitHub to have your code reviewed and merged into the
+   main branch.
 
 GitHub docs provide more information on `forking a repository
 <https://docs.github.com/en/get-started/quickstart/fork-a-repo>`_ and `creating

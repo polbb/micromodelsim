@@ -17,10 +17,14 @@ The package can be installed with `pip <https://github.com/pypa/pip>`_:
 
     pip install git+https://github.com/kerkelae/micromodelsim.git
 
+If you have a CUDA-capable graphical processing unit (GPU), it is recommended
+to also install `JAX <https://jax.readthedocs.io/>`_ for greatly improved
+performance. JAX installation instructions are provided `here
+<https://github.com/google/jax#installation>`_.
+
 Getting started
 ===============
 
-The documentation contains
-`a tutorial <https://micromodelsim.rtfd.io/en/latest/tutorial.html>`_ that
-shows how to use the package. Details can be found in the `reference
+The `tutorial <https://micromodelsim.rtfd.io/en/latest/tutorial.html>`_ shows
+how to use the package. Details can be found in the `reference
 <https://micromodelsim.rtfd.io/en/latest/reference.html>`_.
